@@ -1,144 +1,158 @@
-﻿using System;
-using TMPro;
-using UnityEngine;
-using OpenYandere.Managers;
-using OpenYandere.Characters;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using OpenYandere.Characters.NPC;
 using OpenYandere.Characters.Player;
+using OpenYandere.Managers;
+
+using TMPro;
+
+using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace OpenYandere.UI.TalkCanvas
 {
     public class DialogueBox : MonoBehaviour
     {
-	    private struct DialogueEntry
-	    {
-		    public string CharacterName;
-		    public string Text;
-	    }
-	    
-	    private Player _player;
-	    private NPC _interactingWithNPC;
-	    
-	    private bool _isVisible;
-	    private bool _areChoicesVisible;
+        [Header("References:")] [FormerlySerializedAs("_animator")] [SerializeField]
+        private Animator animator;
 
-	    private readonly Queue<DialogueEntry> _dialogueEntries = new Queue<DialogueEntry>();
-	    
-	    [Header("References:")]
-	    [SerializeField] private Animator _animator;
-	    [SerializeField] private Animator _choicesAnimator;
-	    [SerializeField] private TextMeshProUGUI _characterName;
-	    [SerializeField] private TextMeshProUGUI _dialogueText;
-	    
-	    private void Awake()
-	    {
-		    _player = GameManager.Instance.PlayerManager.Player.GetComponent<Player>();
-	    }
+        [FormerlySerializedAs("_choicesAnimator")] [SerializeField]
+        private Animator choicesAnimator;
 
-	    private void Update()
-	    {
-		    if (!_isVisible) return;
-			
-		    if (Input.GetMouseButtonDown(0) && !_areChoicesVisible)
-		    {
-			    if (_dialogueEntries.Count > 0)
-			    {
-				    DialogueEntry dialogueEntry = _dialogueEntries.Dequeue();
-				    
-				    _characterName.text = dialogueEntry.CharacterName;
-				    _dialogueText.text = dialogueEntry.Text; // TODO: Animate the text.
-			    }
-			    else
-			    {
-				    _animator.SetBool("Visible", false);
-				    _isVisible = false;
-			    }
-		    }
-	    }
+        [FormerlySerializedAs("_characterName")] [SerializeField]
+        private TextMeshProUGUI characterName;
 
-	    public void Initialise(NPC interactingWithNPC)
-	    {
-		    _interactingWithNPC = interactingWithNPC;
-	    }
+        [FormerlySerializedAs("_dialogueText")] [SerializeField]
+        private TextMeshProUGUI dialogueText;
+        
+        private static readonly int Visible = Animator.StringToHash("Visible");
 
-	    public void ShowBox()
-	    {
-		    _animator.SetBool("Visible", true);
-		    _isVisible = true;
-	    }
-	    
+        private readonly Queue<DialogueEntry> m_dialogueEntries = new Queue<DialogueEntry>();
+
+        private bool   m_areChoicesVisible;
+        private NPC    m_interactingWithNpc;
+        private bool   m_isVisible;
+        private Player m_player;
+
+        private void Awake()
+        {
+            m_player = GameManager.Instance.playerManager.player.GetComponent<Player>();
+        }
+
+        private void Update()
+        {
+            if(!m_isVisible)
+            {
+                return;
+            }
+
+            if(!Input.GetMouseButtonDown(0) || m_areChoicesVisible)
+            {
+                return;
+            }
+
+            if(m_dialogueEntries.Count > 0)
+            {
+                DialogueEntry dialogueEntry = m_dialogueEntries.Dequeue();
+
+                characterName.text = dialogueEntry.characterName;
+                dialogueText.text  = dialogueEntry.text; // TODO: Animate the text.
+            }
+            else
+            {
+                animator.SetBool(Visible, false);
+                m_isVisible = false;
+            }
+        }
+
+        public void Initialise(NPC interactingWithNpc)
+        {
+            m_interactingWithNpc = interactingWithNpc;
+        }
+
+        public void ShowBox()
+        {
+            animator.SetBool(Visible, true);
+            m_isVisible = true;
+        }
+
         public void ShowChoices()
         {
-	        _choicesAnimator.SetBool("Visible", true);
-	        _areChoicesVisible = true;
+            choicesAnimator.SetBool(Visible, true);
+            m_areChoicesVisible = true;
         }
 
-	    public void HideChoices()
-	    {
-		    _choicesAnimator.SetBool("Visible", false);
-		    _areChoicesVisible = false;
-	    }
-	    
-	    public void Queue(string characterName, string dialogueText)
-	    {
-		    _dialogueEntries.Enqueue(new DialogueEntry
-		    {
-			    CharacterName = characterName,
-			    Text = dialogueText
-		    });
-	    }
+        public void HideChoices()
+        {
+            choicesAnimator.SetBool(Visible, false);
+            m_areChoicesVisible = false;
+        }
 
-	    public void SetText(string characterName, string dialogueText)
-	    {
-		    _characterName.text = characterName;
-		    _dialogueText.text = dialogueText;
-	    }
-        
+        public void Queue(string newCharacterName, string newDialogueText)
+        {
+            m_dialogueEntries.Enqueue(new DialogueEntry
+            {
+                characterName = newCharacterName,
+                text          = newDialogueText
+            });
+        }
+
+        public void SetText(string newCharacterName, string newDialogueText)
+        {
+            this.characterName.text = newCharacterName;
+            this.dialogueText.text  = newDialogueText;
+        }
+
         public void OnComplimentButtonClicked()
         {
-	        HideChoices();
-	        
-	        SetText(_player.Name, "I just wanted to tell you that you look lovely today!");
+            HideChoices();
 
-	        if (_player.Reputation >= 50)
-	        {
-		        Queue(_interactingWithNPC.Name, "Wow! That means a lot coming from you! Thank you so much!");
-	        }
-	        else if(_player.Reputation < 0)
-	        {
-		        Queue(_interactingWithNPC.Name, "Umm...thanks, I guess...?...");
-	        }
-	        else
-	        {
-		        Queue(_interactingWithNPC.Name, "Really? That's so nice of you to say!");
-	        }
+            SetText(m_player.characterName, "I just wanted to tell you that you look lovely today!");
 
-	        _player.Reputation += 1;
+            if(m_player.reputation >= 50)
+            {
+                Queue(m_interactingWithNpc.characterName, "Wow! That means a lot coming from you! Thank you so much!");
+            }
+            else if(m_player.reputation < 0)
+            {
+                Queue(m_interactingWithNpc.characterName, "Umm...thanks, I guess...?...");
+            }
+            else
+            {
+                Queue(m_interactingWithNpc.characterName, "Really? That's so nice of you to say!");
+            }
+
+            m_player.reputation += 1;
         }
-		
+
         public void OnGossipButtonClicked()
         {
-	        HideChoices();
-			// TODO
+            HideChoices();
+            // TODO
         }
-		
+
         public void OnPerformTaskButtonClicked()
         {
-	        HideChoices();
-	        // TODO
+            HideChoices();
+            // TODO
         }
-		
+
         public void OnAskForFavorButtonClicked()
         {
-	        HideChoices();
-	        // TODO
+            HideChoices();
+            // TODO
         }
-		
+
         public void OnExitButtonClicked()
         {
-	        HideChoices();
-	        // TODO
+            HideChoices();
+            // TODO
+        }
+
+        private struct DialogueEntry
+        {
+            public string characterName;
+            public string text;
         }
     }
 }

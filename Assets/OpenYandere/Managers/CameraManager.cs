@@ -1,11 +1,13 @@
-﻿using UnityEngine;
-using OpenYandere.Characters.Player;
+﻿using OpenYandere.Characters.Player;
+
+using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace OpenYandere.Managers
 {
     public class CameraManager : MonoBehaviour
     {
-        [Header("References:")]
-        public PlayerCamera PlayerCamera;
+        [FormerlySerializedAs("PlayerCamera")] [Header("References:")]
+        public PlayerCamera playerCamera;
     }
 }

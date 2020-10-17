@@ -2,7 +2,7 @@
 {
     public struct InputData
     {
-        public bool IsMoving;
-        public bool IsRunning;
+        public bool isMoving;
+        public bool isRunning;
     }
 }

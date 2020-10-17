@@ -1,35 +1,35 @@
-﻿using OpenYandere.Managers;
-using OpenYandere.Characters.Player.States.Traits;
+﻿using OpenYandere.Characters.Player.States.Traits;
+using OpenYandere.Managers;
 
 namespace OpenYandere.Characters.Player.States
 {
     public class RunningState : IState
     {
-        private PlayerManager _playerManager;
-        
+        private PlayerManager m_playerManager;
+
         public void Constructor(PlayerManager playerManager)
         {
-            _playerManager = playerManager;
+            m_playerManager = playerManager;
         }
 
         public void Enter()
         {
-            var playerMovement = _playerManager.PlayerMovement;
-            playerMovement.SetMovementSpeed(playerMovement.RunSpeed);
+            PlayerMovement playerMovement = m_playerManager.playerMovement;
+            playerMovement.SetMovementSpeed(playerMovement.runSpeed);
         }
 
         public MovementState HandleInput(InputData input)
         {
             // If the player is not running, but is moving switch to the walking state.
-            if (!input.IsRunning && input.IsMoving) return MovementState.Walking;
-            
+            if(!input.isRunning && input.isMoving)
+            {
+                return MovementState.Walking;
+            }
+
             // If the player is not moving switch to the standing state.
-            return !input.IsMoving ? MovementState.Standing : MovementState.None;
+            return !input.isMoving ? MovementState.Standing : MovementState.None;
         }
 
-        public MovementState HandleUpdate(float deltaTime)
-        {
-            return MovementState.None;
-        }
+        public MovementState HandleUpdate(float deltaTime) => MovementState.None;
     }
 }

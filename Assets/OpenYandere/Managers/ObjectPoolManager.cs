@@ -1,87 +1,77 @@
 ﻿using System;
-using UnityEngine;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+
+using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace OpenYandere.Managers
 {
     internal class ObjectPoolManager : MonoBehaviour
     {
-        [Serializable]
-        internal class PoolEntry
-        {
-            [Tooltip("The name that will be used to access the pooled objects.")]
-            public string ObjectName;
-            [Tooltip("The prefab of the object to be pooled.")]
-            public GameObject PrefabObject;
-            [Tooltip("The parent that the prefab should be a child of.")]
-            public GameObject ParentObject;
-            [Tooltip("The number of objects to be pooled.")]
-            public int PoolAmount;
-            [Tooltip("Can the pool grow if there are not enough objects?")]
-            public bool AutomaticGrowth;
+        [FormerlySerializedAs("PoolEntries")] public List<PoolEntry> poolEntries = new List<PoolEntry>();
+        private                                      bool            m_isCoroutineActive;
 
-            [HideInInspector]
-            public List<GameObject> PooledObjects = new List<GameObject>();
-        }
-        
-        public List<PoolEntry> PoolEntries = new List<PoolEntry>();
-        private bool _isCoroutineActive;
-        
         public GameObject this[string name]
         {
             get
             {
-                PoolEntry poolEntry = PoolEntries.First(pooledObject => pooledObject.ObjectName == name);
+                PoolEntry poolEntry = poolEntries.First(pooledObject => pooledObject.objectName == name);
 
-                if (poolEntry == null) return null;
-                
-                foreach (var pooledObject in poolEntry.PooledObjects)
+                if(poolEntry == null)
                 {
-                    if (!pooledObject.gameObject.activeInHierarchy)
+                    return null;
+                }
+
+                foreach(GameObject pooledObject in poolEntry.pooledObjects)
+                {
+                    if(!pooledObject.gameObject.activeInHierarchy)
                     {
                         return pooledObject.gameObject;
                     }
                 }
 
-                return !poolEntry.AutomaticGrowth ? null : CreateObject(poolEntry);
+                return !poolEntry.automaticGrowth ? null : CreateObject(poolEntry);
             }
         }
-        
+
         private void Awake()
         {
-            foreach (var poolEntry in PoolEntries)
+            foreach(PoolEntry poolEntry in poolEntries)
             {
-                for (var i = 0; i < poolEntry.PoolAmount; i++)
+                for(int i = 0; i < poolEntry.poolAmount; i++)
                 {
                     CreateObject(poolEntry);
                 }
             }
         }
-        
+
         private GameObject CreateObject(PoolEntry poolEntry)
         {
-            if (poolEntry.PrefabObject == null)
+            if(poolEntry.prefabObject == null)
             {
-                Debug.LogErrorFormat("'{0}' has not been associated with a prefab.", poolEntry.ObjectName);
+                Debug.LogErrorFormat("'{0}' has not been associated with a prefab.", poolEntry.objectName);
+
                 return null;
             }
 
-            var instantinatedObject = poolEntry.ParentObject != null ? Instantiate(poolEntry.PrefabObject, poolEntry.ParentObject.transform) : Instantiate(poolEntry.PrefabObject);
+            GameObject instantinatedObject = poolEntry.parentObject != null
+                ? Instantiate(poolEntry.prefabObject, poolEntry.parentObject.transform)
+                : Instantiate(poolEntry.prefabObject);
             instantinatedObject.SetActive(false);
 
-            poolEntry.PooledObjects.Add(instantinatedObject);
+            poolEntry.pooledObjects.Add(instantinatedObject);
 
-            if (!_isCoroutineActive && poolEntry.PooledObjects.Count > poolEntry.PoolAmount)
+            if(!m_isCoroutineActive && poolEntry.pooledObjects.Count > poolEntry.poolAmount)
             {
                 StartCoroutine(ClearExcess());
-                _isCoroutineActive = true;
+                m_isCoroutineActive = true;
             }
 
             return instantinatedObject;
         }
-        
+
         private IEnumerator ClearExcess()
         {
             // Yield a few seconds before checking for the first time.
@@ -89,27 +79,36 @@ namespace OpenYandere.Managers
             // then wait 60 seconds before registering any made on subsequent frames.
             yield return new WaitForSeconds(3f);
 
-            while (true)
+            while(true)
             {
-                var excessObjects = 0;
+                int excessObjects = 0;
 
-                foreach (var poolEntry in PoolEntries)
+                foreach(PoolEntry poolEntry in poolEntries)
                 {
-                    if (!poolEntry.AutomaticGrowth || poolEntry.PooledObjects.Count <= poolEntry.PoolAmount) continue;
-                    
+                    if(!poolEntry.automaticGrowth || poolEntry.pooledObjects.Count <= poolEntry.poolAmount)
+                    {
+                        continue;
+                    }
+
                     // Get the items that are over the allowed range.
-                    var autoPooledObjects = poolEntry.PooledObjects.GetRange(poolEntry.PoolAmount, ((poolEntry.PooledObjects.Count - 1) - (poolEntry.PoolAmount - 1)));
+                    List<GameObject> autoPooledObjects =
+                        poolEntry.pooledObjects.GetRange(poolEntry.poolAmount,
+                                                         poolEntry.pooledObjects.Count - 1 -
+                                                         (poolEntry.poolAmount - 1));
 
                     // Add the number of extra objects on to the count
                     excessObjects += autoPooledObjects.Count;
 
                     // Remove the objects that aren't in use (disabled)
-                    foreach (var pooledObject in autoPooledObjects)
+                    foreach(GameObject pooledObject in autoPooledObjects)
                     {
                         // Skip the if object is active.
-                        if (pooledObject.activeInHierarchy) continue;
-                        
-                        poolEntry.PooledObjects.Remove(pooledObject);
+                        if(pooledObject.activeInHierarchy)
+                        {
+                            continue;
+                        }
+
+                        poolEntry.pooledObjects.Remove(pooledObject);
                         Destroy(pooledObject);
 
                         // Remove it from the excess count as it was removed.
@@ -117,14 +116,37 @@ namespace OpenYandere.Managers
                     }
                 }
 
-                if (excessObjects == 0)
+                if(excessObjects == 0)
                 {
-                    _isCoroutineActive = false;
+                    m_isCoroutineActive = false;
+
                     break;
                 }
 
                 yield return new WaitForSeconds(60f);
             }
+        }
+
+        [Serializable]
+        internal class PoolEntry
+        {
+            [FormerlySerializedAs("ObjectName")] [Tooltip("The name that will be used to access the pooled objects.")]
+            public string objectName;
+
+            [FormerlySerializedAs("PrefabObject")] [Tooltip("The prefab of the object to be pooled.")]
+            public GameObject prefabObject;
+
+            [FormerlySerializedAs("ParentObject")] [Tooltip("The parent that the prefab should be a child of.")]
+            public GameObject parentObject;
+
+            [FormerlySerializedAs("PoolAmount")] [Tooltip("The number of objects to be pooled.")]
+            public int poolAmount;
+
+            [FormerlySerializedAs("AutomaticGrowth")] [Tooltip("Can the pool grow if there are not enough objects?")]
+            public bool automaticGrowth;
+
+            [FormerlySerializedAs("PooledObjects")] [HideInInspector]
+            public List<GameObject> pooledObjects = new List<GameObject>();
         }
     }
 }

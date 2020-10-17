@@ -2,17 +2,17 @@
 
 namespace OpenYandere.Characters.NPC
 {
-	[RequireComponent(typeof(NPCMovement))]
-	public abstract class NPC : Character
-	{
-		public void Resume()
-		{
-			// TODO
-		}
+    [RequireComponent(typeof(NpcMovement))]
+    public abstract class NPC : Character
+    {
+        public void Resume()
+        {
+            // TODO
+        }
 
-		public void Pause()
-		{
-			// TODO
-		}
-	}
+        public void Pause()
+        {
+            // TODO
+        }
+    }
 }

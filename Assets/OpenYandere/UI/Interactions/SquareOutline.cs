@@ -15,7 +15,7 @@ namespace OpenYandere.UI.Interactions
         
         private void Awake()
         {
-            _playerCamera = GameManager.Instance.CameraManager.PlayerCamera.GetComponent<Camera>();
+            _playerCamera = GameManager.Instance.cameraManager.playerCamera.GetComponent<Camera>();
         }
         
         private void LateUpdate()
